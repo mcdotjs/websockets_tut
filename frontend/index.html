@@ -105,6 +105,7 @@
   <script type="text/javascript">
     // selectedchat is by default General.
     var selectedchat = "general";
+    let conn = null
 
     /**
      * ChangeChatRoomEvent is used to switch chatroom
@@ -127,7 +128,7 @@
     function sendMessage() {
       var newmessage = document.getElementById("message");
       if (newmessage != null) {
-        console.log(newmessage);
+        conn.send(newmessage.value)
       }
       return false;
     }
@@ -137,7 +138,7 @@
       document.getElementById("chatroom-message").onsubmit = sendMessage;
       if (window["WebSocket"]) {
         console.log("support websockets");
-        new WebSocket("ws://" + document.location.host + "/ws")
+        conn = new WebSocket("ws://" + document.location.host + "/ws")
       } else {
         alert("Browser doesnt supprot websockets")
       }
