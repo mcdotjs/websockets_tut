@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -19,14 +21,30 @@ var (
 type Manager struct {
 	clients ClientList
 	sync.RWMutex
+
+	handlers map[string]EventHandler
 }
 
 func NewManager() *Manager {
-	return &Manager{
-		clients: make(ClientList),
+	m := &Manager{
+		clients:  make(ClientList),
+		handlers: make(map[string]EventHandler),
 	}
+	m.setupEventHandlers()
+	return m
 }
 
+func (m *Manager) routeEvent(event Event, c *Client) error {
+	// checking if have event type on event
+	if handler, ok := m.handlers[event.Type]; ok {
+		if err := handler(event, c); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return errors.New("There is no such a handler")
+	}
+}
 func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
 	log.Println("new connection")
 	//upgrade regular connection to websocket
@@ -61,4 +79,13 @@ func (m *Manager) removeClient(c *Client) {
 		c.connection.Close()
 		delete(m.clients, c)
 	}
+}
+
+func (m *Manager) setupEventHandlers() {
+	m.handlers[EventSendMessage] = SendMessage
+}
+
+func SendMessage(event Event, c *Client) error {
+	fmt.Println("send message be", event)
+	return nil
 }

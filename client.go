@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -14,14 +15,14 @@ type Client struct {
 	manager    *Manager
 
 	//egress is used to avoid concurrent writes on websocket connectoin
-	egress chan []byte
+	egress chan Event
 }
 
 func NewClient(conn *websocket.Conn, manager *Manager) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
-		egress:     make(chan []byte),
+		egress:     make(chan Event),
 	}
 }
 
@@ -33,18 +34,21 @@ func (client *Client) readMessages() {
 	}()
 	for {
 
-		messageType, payload, err := client.connection.ReadMessage()
+		_, payload, err := client.connection.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error printing message: $v", err)
 			}
 			break
 		}
-		log.Println("messageType", messageType)
-		log.Println("payload", string(payload))
-		//NOTE: just for test
-		for wsclient := range client.manager.clients {
-			wsclient.egress <- payload
+		var request Event
+		if err := json.Unmarshal(payload, &request); err != nil {
+			log.Printf("Error unmarshaling event: %v", err)
+			//NOTE: maybe dont have to break here
+			break
+		}
+		if err := client.manager.routeEvent(request, client); err != nil {
+			log.Printf("Error handling message: %v", err)
 		}
 	}
 }
@@ -68,9 +72,14 @@ func (client *Client) writeMessages() {
 				}
 				return
 			}
+			data, err := json.Marshal(message)
+			if err != nil {
+				fmt.Errorf("Writing message, marshal error: %v", err)
+				return
+			}
 
-			if err := client.connection.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Println("failed to send message", err)
+			if err := client.connection.WriteMessage(websocket.TextMessage, data); err != nil {
+				log.Println("failed to send data", err)
 			}
 			fmt.Println("message sent")
 		}

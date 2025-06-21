@@ -107,6 +107,32 @@
     var selectedchat = "general";
     let conn = null
 
+    class Event {
+      constructor(type, payload) {
+        this.type = type
+        this.payload = payload
+      }
+    }
+
+    function routeEvent(event) {
+      if (event.type == undefined) {
+        alert("no type event preesent in the event")
+      }
+
+      switch (event.type) {
+        case "new_message":
+          console.log("new message")
+          break
+        default:
+          alert("unsuported message")
+          break
+      }
+    }
+
+    function sendEvent(eventName, payload) {
+      const event = new Event(eventName, payload)
+      conn.send(JSON.stringify(event))
+    }
     /**
      * ChangeChatRoomEvent is used to switch chatroom
      * */
@@ -122,13 +148,14 @@
       }
       return false;
     }
+
     /**
      * sendMessage will send a new message onto the Chat
      * */
     function sendMessage() {
       var newmessage = document.getElementById("message");
       if (newmessage != null) {
-        conn.send(newmessage.value)
+        sendEvent("send_message", newmessage.value)
       }
       return false;
     }
@@ -140,7 +167,11 @@
         console.log("support websockets");
         conn = new WebSocket("ws://" + document.location.host + "/ws")
         conn.onmessage = function (evt) {
-          console.log("evt", evt)
+          const eventData = JSON.parse(evt.data)
+
+          const event = Object.assign(new Event, eventData)
+
+          routeEvent(event)
         }
       } else {
         alert("Browser doesnt supprot websockets")
