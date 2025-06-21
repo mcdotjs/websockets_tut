@@ -139,6 +139,9 @@
       if (window["WebSocket"]) {
         console.log("support websockets");
         conn = new WebSocket("ws://" + document.location.host + "/ws")
+        conn.onmessage = function (evt) {
+          console.log("evt", evt)
+        }
       } else {
         alert("Browser doesnt supprot websockets")
       }

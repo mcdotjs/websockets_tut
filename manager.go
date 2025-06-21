@@ -41,6 +41,7 @@ func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	//client processes
 	go client.readMessages()
+	go client.writeMessages()
 
 }
 
