@@ -15,6 +15,7 @@ var (
 	websocketUpgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin:     checkOrigin,
 	}
 )
 
@@ -88,4 +89,15 @@ func (m *Manager) setupEventHandlers() {
 func SendMessage(event Event, c *Client) error {
 	fmt.Println("send message be", event)
 	return nil
+}
+
+func checkOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	switch origin {
+	case "http://localhost:8080":
+		return true
+	default:
+		return false
+
+	}
 }
