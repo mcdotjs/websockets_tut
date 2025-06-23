@@ -44,6 +44,9 @@ func (client *Client) readMessages() {
 		log.Println("never...", err)
 	}
 
+	//jumbo frames protection
+	client.connection.SetReadLimit(512)
+
 	client.connection.SetPongHandler(client.pongHandler)
 
 	for {
