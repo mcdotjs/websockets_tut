@@ -114,6 +114,20 @@
       }
     }
 
+    class SendMessageEvent {
+      constructor(message, from) {
+        this.message = message;
+        this.from = from;
+      }
+    }
+
+    class NewMessageEvent {
+      constructor(message, from, sent) {
+        this.message = message;
+        this.from = from;
+        this.sent = sent;
+      }
+    }
     function routeEvent(event) {
       if (event.type == undefined) {
         alert("no type event preesent in the event");
@@ -122,11 +136,23 @@
       switch (event.type) {
         case "new_message":
           console.log("new message");
+          const messageEvent = Object.assign(
+            new NewMessageEvent(),
+            event.payload,
+          );
+          appendChatMessage(messageEvent)
           break;
         default:
           alert("unsuported message");
           break;
       }
+    }
+    function appendChatMessage(messageEvent) {
+      const date = new Date(messageEvent.sent);
+      const formatedMsg = `${date.toLocaleString()}: ${messageEvent.message}`;
+      const textarea = document.getElementById("chatmessages");
+      textarea.innerHTML = textarea.innerHTML + "\n" + formatedMsg;
+      textarea.scrollTop = textarea.scrollHeight
     }
 
     function sendEvent(eventName, payload) {
@@ -155,31 +181,40 @@
     function sendMessage() {
       var newmessage = document.getElementById("message");
       if (newmessage != null) {
-        sendEvent("send_message", newmessage.value);
+        let outgoingEvent = new SendMessageEvent(
+          newmessage.value,
+          "user_name",
+        );
+        sendEvent("send_message", outgoingEvent);
       }
       return false;
     }
 
     function login() {
       let formData = {
-        "username": document.getElementById("username").value,
-        "password": document.getElementById("password").value
-      }
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value,
+      };
       // Send the request
       fetch("login", {
-        method: 'post',
+        method: "post",
         body: JSON.stringify(formData),
-        mode: 'cors',
-      }).then((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw 'unauthorized';
-        }
-      }).then((data) => {
-        // Now we have a OTP, send a Request to Connect to WebSocket
-        connectWebsocket(data.otp);
-      }).catch((e) => {alert(e)});
+        mode: "cors",
+      })
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw "unauthorized";
+          }
+        })
+        .then((data) => {
+          // Now we have a OTP, send a Request to Connect to WebSocket
+          connectWebsocket(data.otp);
+        })
+        .catch((e) => {
+          alert(e);
+        });
       return false;
     }
 
@@ -188,17 +223,21 @@
       if (window["WebSocket"]) {
         console.log("supports websockets");
         // Connect to websocket using OTP as a GET parameter
-        conn = new WebSocket("wss://" + document.location.host + "/ws?otp=" + otp);
+        conn = new WebSocket(
+          "wss://" + document.location.host + "/ws?otp=" + otp,
+        );
 
         // Onopen
         conn.onopen = function (evt) {
-          document.getElementById("connection-header").innerHTML = "Connected to Websocket: true";
-        }
+          document.getElementById("connection-header").innerHTML =
+            "Connected to Websocket: true";
+        };
 
         conn.onclose = function (evt) {
           // Set disconnected
-          document.getElementById("connection-header").innerHTML = "Connected to Websocket: false";
-        }
+          document.getElementById("connection-header").innerHTML =
+            "Connected to Websocket: false";
+        };
 
         // Add a listener to the onmessage event
         conn.onmessage = function (evt) {
@@ -206,16 +245,14 @@
           // parse websocket message as JSON
           const eventData = JSON.parse(evt.data);
           // Assign JSON data to new Event Object
-          const event = Object.assign(new Event, eventData);
+          const event = Object.assign(new Event(), eventData);
           // Let router manage message
           routeEvent(event);
-        }
-
+        };
       } else {
         alert("Not supporting websockets");
       }
     }
-
 
     window.onload = function () {
       document.getElementById("chatroom-selection").onsubmit = changeChatRoom;
