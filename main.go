@@ -10,7 +10,7 @@ import (
 func main() {
 	fmt.Println("web")
 	setupApi()
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServeTLS(":8080", "server.crt", "server.key", nil))
 }
 
 func setupApi() {
