@@ -135,6 +135,16 @@ func (m *Manager) removeClient(c *Client) {
 
 func (m *Manager) setupEventHandlers() {
 	m.handlers[EventSendMessage] = SendMessage
+	m.handlers[EventChatRoom] = ChatRoomHandler
+}
+
+func ChatRoomHandler(event Event, c *Client) error {
+	var chatRoomEvent ChangeRoomEvent
+	if err := json.Unmarshal(event.Payload, &chatRoomEvent); err != nil {
+		return fmt.Errorf("Bad payload in request: %v", err)
+	}
+	c.chatroom = chatRoomEvent.Name
+	return nil
 }
 
 func SendMessage(event Event, c *Client) error {
@@ -156,7 +166,10 @@ func SendMessage(event Event, c *Client) error {
 		Type:    EventNewMessage,
 	}
 	for client := range c.manager.clients {
-		client.egress <- outgoingEvent
+		//NOTE: just for selected chatroom
+		if client.chatroom == c.chatroom {
+			client.egress <- outgoingEvent
+		}
 	}
 	return nil
 }

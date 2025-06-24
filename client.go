@@ -19,7 +19,7 @@ type ClientList map[*Client]bool
 type Client struct {
 	connection *websocket.Conn
 	manager    *Manager
-
+	chatroom   string
 	//egress is used to avoid concurrent writes on websocket connectoin
 	egress chan Event
 }
