@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +14,10 @@ func main() {
 }
 
 func setupApi() {
-	manager := NewManager()
+	ctx := context.Background()
+	manager := NewManager(ctx)
+
 	http.Handle("/", http.FileServer(http.Dir("./frontend")))
 	http.HandleFunc("/ws", manager.ServeWS)
+	http.HandleFunc("/login", manager.loginHandler)
 }

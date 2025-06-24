@@ -105,33 +105,33 @@
   <script type="text/javascript">
     // selectedchat is by default General.
     var selectedchat = "general";
-    let conn = null
+    let conn = null;
 
     class Event {
       constructor(type, payload) {
-        this.type = type
-        this.payload = payload
+        this.type = type;
+        this.payload = payload;
       }
     }
 
     function routeEvent(event) {
       if (event.type == undefined) {
-        alert("no type event preesent in the event")
+        alert("no type event preesent in the event");
       }
 
       switch (event.type) {
         case "new_message":
-          console.log("new message")
-          break
+          console.log("new message");
+          break;
         default:
-          alert("unsuported message")
-          break
+          alert("unsuported message");
+          break;
       }
     }
 
     function sendEvent(eventName, payload) {
-      const event = new Event(eventName, payload)
-      conn.send(JSON.stringify(event))
+      const event = new Event(eventName, payload);
+      conn.send(JSON.stringify(event));
     }
     /**
      * ChangeChatRoomEvent is used to switch chatroom
@@ -155,27 +155,85 @@
     function sendMessage() {
       var newmessage = document.getElementById("message");
       if (newmessage != null) {
-        sendEvent("send_message", newmessage.value)
+        sendEvent("send_message", newmessage.value);
       }
       return false;
     }
 
+    function login() {
+      let formData = {
+        "username": document.getElementById("username").value,
+        "password": document.getElementById("password").value
+      }
+      // Send the request
+      fetch("login", {
+        method: 'post',
+        body: JSON.stringify(formData),
+        mode: 'cors',
+      }).then((response) => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw 'unauthorized';
+        }
+      }).then((data) => {
+        // Now we have a OTP, send a Request to Connect to WebSocket
+        connectWebsocket(data.otp);
+      }).catch((e) => {alert(e)});
+      return false;
+    }
+
+    function connectWebsocket(otp) {
+      // Check if the browser supports WebSocket
+      if (window["WebSocket"]) {
+        console.log("supports websockets");
+        // Connect to websocket using OTP as a GET parameter
+        conn = new WebSocket("ws://" + document.location.host + "/ws?otp=" + otp);
+
+        // Onopen
+        conn.onopen = function (evt) {
+          document.getElementById("connection-header").innerHTML = "Connected to Websocket: true";
+        }
+
+        conn.onclose = function (evt) {
+          // Set disconnected
+          document.getElementById("connection-header").innerHTML = "Connected to Websocket: false";
+        }
+
+        // Add a listener to the onmessage event
+        conn.onmessage = function (evt) {
+          console.log(evt);
+          // parse websocket message as JSON
+          const eventData = JSON.parse(evt.data);
+          // Assign JSON data to new Event Object
+          const event = Object.assign(new Event, eventData);
+          // Let router manage message
+          routeEvent(event);
+        }
+
+      } else {
+        alert("Not supporting websockets");
+      }
+    }
+
+
     window.onload = function () {
       document.getElementById("chatroom-selection").onsubmit = changeChatRoom;
       document.getElementById("chatroom-message").onsubmit = sendMessage;
-      if (window["WebSocket"]) {
-        console.log("support websockets");
-        conn = new WebSocket("ws://" + document.location.host + "/ws")
-        conn.onmessage = function (evt) {
-          const eventData = JSON.parse(evt.data)
-
-          const event = Object.assign(new Event, eventData)
-
-          routeEvent(event)
-        }
-      } else {
-        alert("Browser doesnt supprot websockets")
-      }
+      document.getElementById("login-form").onsubmit = login;
+      // if (window["WebSocket"]) {
+      //   console.log("support websockets");
+      //   conn = new WebSocket("ws://" + document.location.host + "/ws");
+      //   conn.onmessage = function (evt) {
+      //     const eventData = JSON.parse(evt.data);
+      //
+      //     const event = Object.assign(new Event(), eventData);
+      //
+      //     routeEvent(event);
+      //   };
+      // } else {
+      //   alert("Browser doesnt supprot websockets");
+      // }
     };
   </script>
 
